@@ -71,4 +71,4 @@ Phản hồi cho biết tệp đã được tải lên thành công.
 
 Bước 3: Chuyển sang tab Repeater khác chứa `GET /files/avatars/<YOUR-IMAGE>`. Trong đường dẫn, hãy thay thế tên tệp hình ảnh bằng `exploit.php` và gửi yêu cầu.
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7e63a558-97c2-4c30-be0c-00f3654a1024" />
-
+#### 2.2.2 Ngăn chặn việc thực thi tệp trong các thư mục mà người dùng có thể truy cập
