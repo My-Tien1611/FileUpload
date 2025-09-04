@@ -37,7 +37,9 @@ Ví dụ:
 - Tập lệnh này cho phép bạn truyền lệnh hệ thống tùy ý thông qua tham số truy vấn như sau:
 
 `GET /example/exploit.php?command=id HTTP/1.1`
+
 📘 **LAB 1: THỰC THI MÃ TỪ XA THÔNG QUA TẢI LÊN WEB SHELL**
+
 Tải lên một web shell PHP cơ bản và sử dụng nó để trích xuất nội dung của tệp `/home/carlos/secret`
 
 Bước 1: Upload ảnh → xác nhận hiển thị → lọc lịch sử Burp theo MIME Image → tìm request GET đến file ảnh → gửi sang Repeater.
@@ -58,6 +60,7 @@ Kết quả đầu ra: `1eCueh5dOL56ir9XPaW2KZgyc1GLbF9e`
 Các website thường có cơ chế chặn tệp độc hại, nhưng nhiều khi chỉ kiểm tra **Content-Type** trong phần upload. Vì tiêu đề này dễ bị giả mạo, kẻ tấn công có thể gửi file script độc hại nhưng gắn nhãn MIME như hình ảnh (`image/jpeg`). Nếu máy chủ không xác minh nội dung thực, webshell có thể được tải lên và thực thi, dẫn đến chiếm quyền điều khiển.
 
 📘 **LAB 2: TẢI LÊN WEB SHELL BẰNG CÁCH VƯỢT QUA HẠN CHẾ CONTENT-TYPE**
+
 Bước 1: Tạo một tệp có tên là exploit.php, chứa một tập lệnh để lấy nội dung bí mật của Carlos.
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/c0c6e4c7-4a8b-48a3-9c76-12cb96ae3446" />
 Phản hồi cho biết bạn chỉ được phép tải lên các tệp có định dạng MIME `image/jpeg` hoặc `image/png`.
